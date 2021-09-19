@@ -100,7 +100,7 @@ func (auth *auth) callback(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	auth.sessions[session.Value] = sessionInfo{info, time.Now()}
+	auth.sessions[session.Value] = sessionInfo{*info, time.Now()}
 }
 
 type tokenRequest struct {
@@ -133,26 +133,6 @@ func (auth *auth) getAccessToken(code string) (*tokenResponse, error) {
 	var resBody tokenResponse
 	auth.postRequest("https://discord.com/api/oauth2/token", body, &resBody)
 	return &resBody, nil
-
-	// jsonBytes, err := json.Marshal(&body)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// url := "https://discord.com/api/oauth2/token"
-	// res, err := http.Post(url, "application/x-www-form-urlencoded", bytes.NewBuffer(jsonBytes))
-	// if err != nil {
-	// 	return nil, fmt.Errorf("invalid code")
-	// }
-
-	// var resBody tokenResponse
-	// decoder := json.NewDecoder(res.Body)
-	// if err := decoder.Decode(&resBody); err != nil {
-	// 	return nil, fmt.Errorf("invalid response body")
-	// }
-	// defer res.Body.Close()
-
-	// return &resBody, nil
 }
 
 type refreshTokenRequest struct {
@@ -173,25 +153,6 @@ func (auth *auth) refreshToken(refreshToken string) (*tokenResponse, error) {
 	var resBody tokenResponse
 	auth.postRequest("https://discord.com/api/oauth2/token", body, &resBody)
 	return &resBody, nil
-
-	// jsonBytes, err := json.Marshal(&body)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// url := "https://discord.com/api/oauth2/token"
-	// res, err := http.Post(url, "application/x-www-form-urlencoded", bytes.NewBuffer(jsonBytes))
-	// if err != nil {
-	// 	return nil, fmt.Errorf("invalid code")
-	// }
-
-	// var resBody tokenResponse
-	// if err := json.NewDecoder(res.Body).Decode(&resBody); err != nil {
-	// 	return nil, fmt.Errorf("invalid response body")
-	// }
-	// defer res.Body.Close()
-
-	// return &resBody, nil
 }
 
 func (auth *auth) postRequest(url string, body interface{}, response interface{}) error {
