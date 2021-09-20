@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 )
 
 type Keys struct {
@@ -17,15 +18,25 @@ type Keys struct {
 	SEASON               string
 }
 
+type session struct {
+	info           TokenResponse
+	expirationDate time.Time
+}
+
 func main() {
 	keys := getKeys()
 
+	sessions := Sessions()
+
 	oauth2 := OAuth2(AuthConfig{
-		OAUTH_URL:     "https://discord.com/api/oauth2/authorize?",
-		LOGIN_URL:     "/login",
-		REDIRECT_URL:  "https://localhost:8000/callback",
-		CLIENT_ID:     keys.CLIENT_ID,
-		CLIENT_SECRET: keys.CLIENT_SECRET,
+		oauth_url:     "https://discord.com/api/oauth2/authorize?",
+		login_url:     "/login",
+		redirect_url:  "https://localhost:8000/callback",
+		client_id:     keys.CLIENT_ID,
+		client_secret: keys.CLIENT_SECRET,
+		session_func: func(key string, value TokenResponse) {
+			sessions.AddSession(key, value)
+		},
 	})
 
 	oauth2.Start()

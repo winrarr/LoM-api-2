@@ -5,33 +5,26 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 )
 
 type auth struct {
-	sessions map[string]sessionInfo
-	config   AuthConfig
-}
-
-type sessionInfo struct {
-	info           tokenResponse
-	expirationDate time.Time
+	config AuthConfig
 }
 
 type AuthConfig struct {
-	OAUTH_URL     string
-	LOGIN_URL     string
-	REDIRECT_URL  string
-	CLIENT_ID     string
-	CLIENT_SECRET string
+	oauth_url     string
+	login_url     string
+	redirect_url  string
+	client_id     string
+	client_secret string
+	session_func  func(string, TokenResponse)
 }
 
 func OAuth2(config AuthConfig) auth {
 	return auth{
-		sessions: make(map[string]sessionInfo),
-		config:   config,
+		config: config,
 	}
 }
 
@@ -42,7 +35,7 @@ func (auth *auth) Config(config AuthConfig) {
 func (auth *auth) Start() {
 	r := mux.NewRouter()
 
-	r.HandleFunc(auth.config.LOGIN_URL, auth.Login)
+	r.HandleFunc(auth.config.login_url, auth.Login)
 	r.Path("/callback").
 		Queries("code", "", "state", "").
 		HandlerFunc(auth.callback).
@@ -60,9 +53,9 @@ func (auth *auth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r,
-		auth.config.OAUTH_URL+
-			"client_id="+auth.config.CLIENT_ID+
-			"&redirect_uri="+auth.config.REDIRECT_URL+
+		auth.config.oauth_url+
+			"client_id="+auth.config.client_id+
+			"&redirect_uri="+auth.config.redirect_url+
 			"&response_type=code"+
 			"&scope=identify"+
 			"&state="+state.Value+
@@ -100,7 +93,7 @@ func (auth *auth) callback(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	auth.sessions[session.Value] = sessionInfo{*info, time.Now()}
+	auth.config.session_func(session.Value, *info)
 }
 
 type tokenRequest struct {
@@ -112,7 +105,7 @@ type tokenRequest struct {
 	Scope         string
 }
 
-type tokenResponse struct {
+type TokenResponse struct {
 	Access_token  string
 	Expires_in    string
 	Refresh_token string
@@ -120,17 +113,17 @@ type tokenResponse struct {
 	Token_type    string
 }
 
-func (auth *auth) getAccessToken(code string) (*tokenResponse, error) {
+func (auth *auth) getAccessToken(code string) (*TokenResponse, error) {
 	body := tokenRequest{
-		Client_id:     auth.config.CLIENT_ID,
-		Client_secret: auth.config.CLIENT_SECRET,
-		Redirect_url:  auth.config.REDIRECT_URL,
+		Client_id:     auth.config.client_id,
+		Client_secret: auth.config.client_secret,
+		Redirect_url:  auth.config.redirect_url,
 		Grant_type:    "authorization_code",
 		Code:          code,
 		Scope:         "identify",
 	}
 
-	var resBody tokenResponse
+	var resBody TokenResponse
 	auth.postRequest("https://discord.com/api/oauth2/token", body, &resBody)
 	return &resBody, nil
 }
@@ -142,15 +135,15 @@ type refreshTokenRequest struct {
 	Refresh_token string
 }
 
-func (auth *auth) refreshToken(refreshToken string) (*tokenResponse, error) {
+func (auth *auth) refreshToken(refreshToken string) (*TokenResponse, error) {
 	body := refreshTokenRequest{
-		Client_id:     auth.config.CLIENT_ID,
-		Client_secret: auth.config.CLIENT_SECRET,
+		Client_id:     auth.config.client_id,
+		Client_secret: auth.config.client_secret,
 		Grant_type:    "refresh_token",
 		Refresh_token: refreshToken,
 	}
 
-	var resBody tokenResponse
+	var resBody TokenResponse
 	auth.postRequest("https://discord.com/api/oauth2/token", body, &resBody)
 	return &resBody, nil
 }
