@@ -1,11 +1,12 @@
 package main
 
 import (
+	"LoM-api/oauth2"
+	"LoM-api/sessions"
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 )
 
 type Keys struct {
@@ -18,23 +19,20 @@ type Keys struct {
 	SEASON               string
 }
 
-type session struct {
-	info           TokenResponse
-	expirationDate time.Time
-}
-
 func main() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	keys := getKeys()
 
-	sessions := Sessions()
+	sessions := sessions.Sessions()
 
-	oauth2 := OAuth2(AuthConfig{
-		oauth_url:     "https://discord.com/api/oauth2/authorize?",
-		login_url:     "/login",
-		redirect_url:  "https://localhost:8000/callback",
-		client_id:     keys.CLIENT_ID,
-		client_secret: keys.CLIENT_SECRET,
-		session_func: func(key string, value TokenResponse) {
+	oauth2 := oauth2.OAuth2(oauth2.AuthConfig{
+		Oauth_url:     "https://discord.com/api/oauth2/authorize?",
+		Login_url:     "/login",
+		Redirect_url:  "https://localhost:8000/callback",
+		Client_id:     keys.CLIENT_ID,
+		Client_secret: keys.CLIENT_SECRET,
+		Session_func: func(key string, value oauth2.TokenResponse) {
 			sessions.AddSession(key, value)
 		},
 	})
