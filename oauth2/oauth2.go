@@ -16,9 +16,10 @@ type auth struct {
 type AuthConfig struct {
 	Oauth_url     string
 	Login_url     string
-	Redirect_url  string
+	Redirect_uri  string
 	Client_id     string
 	Client_secret string
+	Scope         string
 	Session_func  func(string, TokenResponse)
 }
 
@@ -55,7 +56,7 @@ func (auth *auth) Login(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r,
 		auth.config.Oauth_url+
 			"client_id="+auth.config.Client_id+
-			"&redirect_uri="+auth.config.Redirect_url+
+			"&redirect_uri="+auth.config.Redirect_uri+
 			"&response_type=code"+
 			"&scope=identify"+
 			"&state="+state.Value+
@@ -97,12 +98,12 @@ func (auth *auth) callback(w http.ResponseWriter, r *http.Request) {
 }
 
 type tokenRequest struct {
-	Client_id     string
-	Client_secret string
-	Redirect_url  string
-	Grant_type    string
-	Code          string
-	Scope         string
+	Client_id     string `json:"client_id"`
+	Client_secret string `json:"client_secret"`
+	Redirect_uri  string `json:"redirect_uri"`
+	Grant_type    string `json:"grant_type"`
+	Code          string `json:"code"`
+	Scope         string `json:"scope"`
 }
 
 type TokenResponse struct {
@@ -117,22 +118,22 @@ func (auth *auth) getAccessToken(code string) (*TokenResponse, error) {
 	body := tokenRequest{
 		Client_id:     auth.config.Client_id,
 		Client_secret: auth.config.Client_secret,
-		Redirect_url:  auth.config.Redirect_url,
+		Redirect_uri:  auth.config.Redirect_uri,
 		Grant_type:    "authorization_code",
 		Code:          code,
-		Scope:         "identify",
+		Scope:         auth.config.Scope,
 	}
 
 	var resBody TokenResponse
-	auth.postRequest("https://discord.com/api/oauth2/token", body, &resBody)
+	postRequest("https://discord.com/api/oauth2/token", body, &resBody)
 	return &resBody, nil
 }
 
 type refreshTokenRequest struct {
-	Client_id     string
-	Client_secret string
-	Grant_type    string
-	Refresh_token string
+	Client_id     string `json:"client_id"`
+	Client_secret string `json:"client_secret"`
+	Grant_type    string `json:"grant_type"`
+	Refresh_token string `json:"refresh_token"`
 }
 
 func (auth *auth) refreshToken(refreshToken string) (*TokenResponse, error) {
@@ -144,11 +145,11 @@ func (auth *auth) refreshToken(refreshToken string) (*TokenResponse, error) {
 	}
 
 	var resBody TokenResponse
-	auth.postRequest("https://discord.com/api/oauth2/token", body, &resBody)
+	postRequest("https://discord.com/api/oauth2/token", body, &resBody)
 	return &resBody, nil
 }
 
-func (auth *auth) postRequest(url string, body interface{}, response interface{}) error {
+func postRequest(url string, body interface{}, response interface{}) error {
 	jsonBytes, err := json.Marshal(&body)
 	if err != nil {
 		return err

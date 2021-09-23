@@ -29,6 +29,7 @@ func (sessions *sessions) AddSession(key string, value interface{}) {
 		value:   value,
 		expires: time.Now().Add(time.Hour),
 	}
+	sessions.printSessions()
 }
 
 func (sessions *sessions) RemoveSession(key string) {
@@ -38,7 +39,7 @@ func (sessions *sessions) RemoveSession(key string) {
 func (sessions *sessions) printSessions() {
 	println("printing sessions")
 	for k, v := range sessions.sessions {
-		fmt.Println("key: " + k + ", value: " + v.expires.String())
+		fmt.Printf("key: %s, value: %+v", k, v)
 	}
 }
 
